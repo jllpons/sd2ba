@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 
+import logging
+import sys
+
 import requests
+
 from requests.adapters import HTTPAdapter, Retry
 
 from sd2ba_functions.api_urls import RSCB_PDB_API_URL
+
+
+logger = logging.getLogger(__name__)
 
 def make_request_with_retries(url, retries=3, delay=1):
     """
@@ -33,7 +40,7 @@ def make_request_with_retries(url, retries=3, delay=1):
     return response
 
 
-def get_pdb_file(code) -> dict:
+def get_pdb_file(code):
     """
     Get PDB file data for a given code.
 
@@ -53,15 +60,15 @@ def get_pdb_file(code) -> dict:
     response = make_request_with_retries(url)
 
     if response.status_code == 200:
-        return {
-                'success': True,
-                'url': url,
-                'data': response
-                }
+        logging.debug(
+                f'RSCB PDB request for {code} pdb file was successful. '
+                + f'Url used was {url}.'
+                )
+        return response
     else:
-        return {
-                'success': False,
-                'url': url,
-                'data': response
-                }
+        logging.critical(
+                f'RSCB PDB request for {code} pdb file was unsuccessful. '
+                + f'Url used was {url}. The script has stopped.'
+                )
+        sys.exit('\n** CRITICAL: Request to RSCB PDB failed. Check log file for detailed info. **')
 
