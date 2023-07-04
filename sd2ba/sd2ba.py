@@ -13,8 +13,6 @@ import logging
 import os
 import sys
 
-from requests.adapters import proxy_from_url
-
 from sd2ba_functions.fetch_data import get_data_from_uniref, get_uniprot_entry_data, get_pdb_file
 from sd2ba_functions.handle_data import get_solved_residues_from_pdb
 from sd2ba_functions.output import write_fasta
@@ -45,9 +43,9 @@ class Protein:
 
 class ReferenceProtein(Protein):
 
-    def __init__(self, input_id: str, aa_with_known_positions: dict):
+    def __init__(self, input_id: str):
         super().__init__(input_id)
-        self.aa_with_known_positions = aa_with_known_positions
+        self.aa_with_known_positions = {}
 
 
 def main():
@@ -155,14 +153,8 @@ def main():
         handle.write(get_pdb_file(pdb_code[:4]))
     logging.debug(f"PDB file for {pdb_code} was saved in {pdb_file}")
 
-    ref_protein = ReferenceProtein(
-            input_id=pdb_code,
-            aa_with_known_positions=get_solved_residues_from_pdb(pdb_code, pdb_file)
-            )
-
-    for p in proteins:
-            p.similarity_value = calculate_similarity(ref_protein, p)
-
+    ref_protein = ReferenceProtein(input_id=pdb_code)
+    ref_protein.aa_with_known_positions=get_solved_residues_from_pdb(pdb_code, pdb_file)
 
 if __name__ == "__main__":
     main()
