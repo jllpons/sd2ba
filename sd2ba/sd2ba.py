@@ -4,14 +4,20 @@
 sd2ba: Segmented Domain to Breakpoint Analysis
 """
 
+# TODO: Remove later
+import pdb
+
 import argparse
 from functools import total_ordering
 import logging
 import os
 import sys
 
-from sd2ba_functions.fetch_data import get_pdb_file
+from requests.adapters import proxy_from_url
+
+from sd2ba_functions.fetch_data import get_data_from_uniref, get_uniprot_entry_data, get_pdb_file
 from sd2ba_functions.handle_data import get_solved_residues_from_pdb
+from sd2ba_functions.output import write_fasta
 
 
 __version__ = "0.0"
@@ -22,6 +28,9 @@ class Protein:
 
     def __init__(self, input_id: str):
         self.input_id = input_id
+        self.uniprot_accession = ""
+        self.ena_accession = ""
+        self.uniprot_aa_sequence = ""
         self.similarity_value = 0
 
     def __eq__(self, other):
@@ -111,19 +120,48 @@ def main():
     logging.info("CMD: " + " ".join(sys.argv))
     logging.debug(f"Output directory was created: {output_path}")
 
+    uniref_data = get_data_from_uniref(args.uniref_code)
+    proteins = []
+    for i in uniref_data:
+        proteins.append(Protein(input_id=i))
+
+    for p in proteins:
+        uniprot_entry_data = get_uniprot_entry_data(p.input_id)
+
+        if uniprot_entry_data["successful"] == True:
+            p.uniprot_accession = uniprot_entry_data["uniprot_accession"]
+            p.ena_accession = uniprot_entry_data["ena_accession"]
+            p.uniprot_aa_sequence = uniprot_entry_data["uniprot_aa_sequence"]
+
+        else:
+            proteins.remove(p)
+            logging.warning(
+                    f"{p.input_id} present in {args.uniref_code} have been removed "
+                    + "from the analysis due to problems accesing its uniprot entry. "
+                    )
+
+    fasta_uniprot_aa_sequences = []
+    for p in proteins:
+        fasta_uniprot_aa_sequences.append(f">{p.uniprot_accession}_{p.ena_accession}")
+        fasta_uniprot_aa_sequences.append(p.uniprot_aa_sequence)
+
+    write_fasta(f"{output_path}/uniprot_aa_sequences.fasta", "\n".join(fasta_uniprot_aa_sequences))
 
     # Requesting PDB file to RSCB-PDB.
     # Any unsuccessful request will result in critical error and the exit of the script.
     # The PDB file is saved in the output directory
     pdb_file = output_path + f"/{pdb_code}.pdb"
     with open(pdb_file, "w") as handle:
-        handle.write(get_pdb_file(pdb_code[:4]).text)
+        handle.write(get_pdb_file(pdb_code[:4]))
     logging.debug(f"PDB file for {pdb_code} was saved in {pdb_file}")
 
     ref_protein = ReferenceProtein(
             input_id=pdb_code,
             aa_with_known_positions=get_solved_residues_from_pdb(pdb_code, pdb_file)
             )
+
+    for p in proteins:
+            p.similarity_value = calculate_similarity(ref_protein, p)
 
 
 if __name__ == "__main__":
