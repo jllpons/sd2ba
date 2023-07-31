@@ -38,7 +38,7 @@ def main():
     present in a UniRef cluster. The input is a UniRef cluster ID and the
     output is a fasta file with the AA sequences and another fasta file with
     with as the nucleotide sequences.
-"""
+    """
 
     parser = argparse.ArgumentParser(
             description=description,
