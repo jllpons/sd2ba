@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO: Remove later
-import pdb
 
 import json
 import logging
@@ -26,9 +24,14 @@ def handle_uniref_json(response):
 
     response = json.loads(response)
 
-    members = response["members"]
-
     uniref_data = []
+
+    representative = response["representativeMember"]
+    if representative["memberIdType"] == "UniProtKB ID":
+        representative_id = representative["memberId"]
+        uniref_data.append(representative_id)
+
+    members = response["members"]
     for i in members:
 
         if i["memberIdType"] == "UniProtKB ID":
@@ -39,7 +42,8 @@ def handle_uniref_json(response):
 
     logging.info(
             f"Number of members found in the UniRef cluster was {len(members)}. "
-            + f"Number of proteins IDs included in the analysis was {len(uniref_data)}."
+            + f"Number of proteins IDs present in the UniprotKB was {len(uniref_data)}. "
+            + f"Only UniProtKB IDs have been considered."
                   )
 
     return uniref_data
@@ -72,6 +76,7 @@ def handle_uniprot_entry_json(response):
     response = json.loads(response)
 
     try:
+        # UniProt accession code.
         uniprot_accession = response["primaryAccession"]
 
         for i in range(len(response["uniProtKBCrossReferences"])):
@@ -83,8 +88,10 @@ def handle_uniprot_entry_json(response):
                 for j in range(len(embl_data["properties"])):
 
                     if embl_data["properties"][j]["key"] == "ProteinId":
+                        # ENA accession code.
                         ena_accession = embl_data["properties"][j]["value"].split(".")[0]
 
+        # Amino acid sequence.
         uniprot_aa_sequence = response["sequence"]["value"]
 
         # FIXME: some entries present errors
@@ -168,3 +175,31 @@ def get_solved_residues_from_pdb(pdb_code, pdb_file):
             }
 
     return solved_residues
+
+
+def read_single_fasta(text):
+    """
+    Reads a single FASTA entry.
+
+    Args:
+        text (str): The text of the FASTA entry.
+
+    Returns:
+        dict: A dictionary containing the header and the sequence of the FASTA entry.
+        - successful (bool): Indicates whether the reading was successful.
+        - header (str): The header of the FASTA entry.
+        - sequence (str): The sequence of the FASTA entry.
+    """
+
+    # If the first character of the text is not ">", it's not a FASTA entry.
+    if text[0] != ">":
+        return {"successful": False}
+
+    header = text.split("\n")[0]
+    sequence = "".join(text.split("\n")[1:])
+
+    return {
+            "successful": True,
+            "header": header,
+            "sequence": sequence
+            }

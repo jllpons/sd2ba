@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 import logging
 import sys
 
@@ -7,8 +8,8 @@ import requests
 
 from requests.adapters import HTTPAdapter, Retry
 
-from sd2ba_functions.api_urls import UNIPROT_UNIREF_JSON_API_URL, RSCB_PDB_API_URL, UNIPROT_ENTRY_JSON_API_URL
-from sd2ba_functions.handle_data import handle_uniref_json, handle_uniprot_entry_json
+from sd2ba_functions.API_URLS import UNIPROT_UNIREF_JSON_API_URL, RSCB_PDB_API_URL, UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL
+from sd2ba_functions.handle_data import handle_uniref_json, handle_uniprot_entry_json, read_single_fasta
 
 
 logger = logging.getLogger(__name__)
@@ -44,8 +45,18 @@ def make_request_with_retries(url, retries=3, delay=1):
 
 def get_data_from_uniref(code):
     """
-    Accesses uniprot and obtains all of the uniprot accession codes from a given
-    uniref code
+    Fetches UniRef data in JSON format for a given UniRef code.
+
+    Parameters:
+        code (str): The UniRef code for the desired UniRef cluster.
+
+    Returns:
+        requests.Response.text: The JSON response text.
+
+    Raises:
+        SystemExit: If the request to UniProt for UniRef data fails or if there is an error
+                    in handling the UniRef JSON response.
+
     """
 
     url = UNIPROT_UNIREF_JSON_API_URL.format(code=code)
@@ -61,17 +72,17 @@ def get_data_from_uniref(code):
             return handle_uniref_json(response.text)
         except:
             logging.critical(
-                    f"Error in handling UniProt JSON response for {code}. "
-                    + "The structure of the JSON response may have changed. "
-                    + "Check handle_uniref_json function in sd2ba_functions.handle_data"
+                    f"Error in handling UniProt-UniRef JSON response for {code}. "
+                    + "The structure of the JSON response could have changed. "
+                    + "Check handle_uniref_json() in sd2ba_functions.handle_data"
                     )
-            sys.exit("\n** CRITICAL: Error in handling UniProt response. Check log file for detailed info. **")
+            sys.exit("\n** CRITICAL: Error in handling UniProt-UniRef response. Check log file for detailed info. **")
     else:
         logging.critical(
                 f"UniProt request for {code} was unsuccessful. "
                 + f"Url used was {url}. The script has stopped."
                 )
-        sys.exit("\n** CRITICAL: Request to UniProt failed. Check log file for detailed info. **")
+        sys.exit("\n** CRITICAL: Request for UniRef data to UniProt failed. Check log file for detailed info. **")
 
 
 def get_uniprot_entry_data(code):
@@ -92,9 +103,6 @@ def get_uniprot_entry_data(code):
         This function makes a request to the UniProt API using the provided code and retrieves the corresponding entry data.
         If the retrieval is successful, the relevant information is extracted and returned in a dictionary format.
         If any errors occur during the retrieval or handling of the response, the function logs appropriate messages and returns a dictionary with "successful" set to False.
-
-    Raises:
-        None.
     """
 
     url = UNIPROT_ENTRY_JSON_API_URL.format(code=code)
@@ -154,7 +162,6 @@ def get_pdb_file(code):
             - "success" (bool): Indicates whether the operation was successful.
             - "url" (str): The URL used to fetch the PDB file data.
             - "data" (requests.Response): The response object containing the PDB file data.
-
     """
 
     url = RSCB_PDB_API_URL.format(code=code)
@@ -167,6 +174,7 @@ def get_pdb_file(code):
                 + f"Url used was {url}."
                 )
         return response.text
+
     else:
         logging.critical(
                 f"RSCB PDB request for {code} pdb file was unsuccessful. "
@@ -174,3 +182,47 @@ def get_pdb_file(code):
                 )
         sys.exit("\n** CRITICAL: Request to RSCB PDB failed. Check log file for detailed info. **")
 
+
+def get_ena_nucleotide_sequence(code):
+    """
+    Get ENA nucleotide sequence for a given code.
+
+    Parameters:
+        code (str): The ENA code to retrieve the sequence for.
+
+    Returns:
+        dict: A dictionary containing the result of the operation. The dictionary has the following keys:
+            - "success" (bool): Indicates whether the operation was successful.
+            - "fasta" (str): The fasta sequence for the ENA entry.
+    """
+
+    url = ENA_NUCLEOTIDE_SEQUENCE_API_URL.format(code=code)
+
+    response = make_request_with_retries(url)
+
+    if response.status_code == 200:
+        logging.debug(
+                f"ENA request for {code} nucleotide sequence was successful. "
+                + f"Url used was {url}."
+                )
+
+        ena_fasta = read_single_fasta(response.text)
+
+        if ena_fasta["successful"] == False:
+            logging.info(
+                    f"FastA sequence for {code} nucleotide sequence was not found. "
+                    + f"Url used was {url}."
+                    )
+            return {"successful": False}
+
+        return {
+                "successful": True,
+                "fasta": ena_fasta,
+                }
+
+    else:
+        logging.info(
+                f"ENA request for {code} nucleotide sequence was unsuccessful. "
+                + f"Url used was {url}."
+                )
+        return {"successful": False}
