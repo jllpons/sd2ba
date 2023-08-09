@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 
+import gzip
 import logging
 import sys
 
@@ -8,7 +9,11 @@ import requests
 
 from requests.adapters import HTTPAdapter, Retry
 
-from sd2ba_functions.API_URLS import UNIPROT_UNIREF_JSON_API_URL, RSCB_PDB_API_URL, UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL
+from sd2ba_functions.API_URLS import (
+        UNIPROT_UNIREF_JSON_API_URL, RSCB_PDB_API_URL,
+        UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL,
+        PFAM_HMM_API_URL,
+        )
 from sd2ba_functions.handle_data import handle_uniref_json, handle_uniprot_entry_json, read_single_fasta
 
 
@@ -77,12 +82,12 @@ def get_data_from_uniref(code):
                     + "Check handle_uniref_json() in sd2ba_functions.handle_data"
                     )
             sys.exit("\n** CRITICAL: Error in handling UniProt-UniRef response. Check log file for detailed info. **")
-    else:
-        logging.critical(
-                f"UniProt request for {code} was unsuccessful. "
-                + f"Url used was {url}. The script has stopped."
-                )
-        sys.exit("\n** CRITICAL: Request for UniRef data to UniProt failed. Check log file for detailed info. **")
+
+    logging.critical(
+            f"UniProt request for {code} was unsuccessful. "
+            + f"Url used was {url}. The script has stopped."
+            )
+    sys.exit("\n** CRITICAL: Request for UniRef data to UniProt failed. Check log file for detailed info. **")
 
 
 def get_uniprot_entry_data(code):
@@ -125,14 +130,13 @@ def get_uniprot_entry_data(code):
                         "ena_accession": entry_data["ena_accession"],
                         "uniprot_aa_sequence": entry_data["uniprot_aa_sequence"],
                         }
-            else:
-                logging.info(
-                    f"Error in handling UniProt JSON response for {code}. "
-                    + "The structure of the JSON response may have changed. "
-                    + "Check handle_uniprot_entry_json function in sd2ba_functions.handle_data"
-                    )
+            logging.info(
+                f"Error in handling UniProt JSON response for {code}. "
+                + "The structure of the JSON response may have changed. "
+                + "Check handle_uniprot_entry_json function in sd2ba_functions.handle_data"
+                )
 
-                return {"successful": False}
+            return {"successful": False}
 
         except:
             logging.info(
@@ -142,12 +146,11 @@ def get_uniprot_entry_data(code):
                     )
             return {"successful": False}
 
-    else:
-        logging.info(
-                f"UniProt request for {code} entry was unsuccessful. "
-                + f"Url used was {url}."
-                )
-        return {"successful": False}
+    logging.info(
+            f"UniProt request for {code} entry was unsuccessful. "
+            + f"Url used was {url}."
+            )
+    return {"successful": False}
 
 
 def get_pdb_file(code):
@@ -158,10 +161,10 @@ def get_pdb_file(code):
         code (str): The PDB code to retrieve the file data for.
 
     Returns:
-        dict: A dictionary containing the result of the operation. The dictionary has the following keys:
-            - "success" (bool): Indicates whether the operation was successful.
-            - "url" (str): The URL used to fetch the PDB file data.
-            - "data" (requests.Response): The response object containing the PDB file data.
+        str: The PDB file data in text format.
+
+    Raises:
+        SystemExit: If the request to RSCB PDB for the PDB file fails.
     """
 
     url = RSCB_PDB_API_URL.format(code=code)
@@ -175,12 +178,11 @@ def get_pdb_file(code):
                 )
         return response.text
 
-    else:
-        logging.critical(
-                f"RSCB PDB request for {code} pdb file was unsuccessful. "
-                + f"Url used was {url}. The script has stopped."
-                )
-        sys.exit("\n** CRITICAL: Request to RSCB PDB failed. Check log file for detailed info. **")
+    logging.critical(
+            f"RSCB PDB request for {code} pdb file was unsuccessful. "
+            + f"Url used was {url}. The script has stopped."
+            )
+    sys.exit("\n** CRITICAL: Request to RSCB PDB failed. Check log file for detailed info. **")
 
 
 def get_ena_nucleotide_sequence(code):
@@ -220,9 +222,37 @@ def get_ena_nucleotide_sequence(code):
                 "fasta": ena_fasta,
                 }
 
-    else:
-        logging.info(
-                f"ENA request for {code} nucleotide sequence was unsuccessful. "
+    logging.info(
+            f"ENA request for {code} nucleotide sequence was unsuccessful. "
+            + f"Url used was {url}."
+            )
+    return {"successful": False}
+
+
+def get_hmm_file(pfam_code):
+
+    url = PFAM_HMM_API_URL.format(code=pfam_code)
+
+    response = make_request_with_retries(url)
+
+    if response.status_code == 200:
+        logging.debug(
+                f"PFAM request for {pfam_code} hmm file was successful. "
                 + f"Url used was {url}."
                 )
-        return {"successful": False}
+        try:
+            # Interpro returns gzipped files.
+            # Will they all be gzipped?
+            # This is what trust issues look like.
+            response = gzip.decompress(response.content)
+            return response.decode("utf-8")
+
+        except:
+            return response.text
+
+    logging.critical(
+            f"PFAM request for {pfam_code} hmm file was unsuccessful. "
+            + f"Url used was {url}. The script has stopped."
+            )
+    sys.exit("\n** CRITICAL: Request to PFAM failed. Check log file for detailed info. **")
+

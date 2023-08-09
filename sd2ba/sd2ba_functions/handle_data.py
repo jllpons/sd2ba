@@ -203,3 +203,37 @@ def read_single_fasta(text):
             "header": header,
             "sequence": sequence
             }
+
+
+def read_multiple_fasta(text):
+    """
+    Reads a FASTA file containing multiple entries.
+
+    Args:
+        text (str): The text of the FASTA file.
+
+    Returns:
+        dict: A dictionary containing the headers and the sequences of the FASTA entries.
+        - successful (bool): Indicates whether the reading was successful.
+        - data (dict): A dictionary containing the headers and the sequences of the FASTA entries.
+            The keys are the headers and the values are the sequences.
+    """
+
+    # If the first character of the text is not ">", it's not a FASTA file.
+    if text[0] != ">":
+        return {"successful": False}
+
+    data = {}
+    for entry in text.split(">"):
+        if len(entry):
+            entry_data = entry.split("\n")
+            header = entry_data[0]
+            sequence = "".join(entry_data[1:])
+            data[header] = sequence
+
+    return {
+            "successful": True,
+            "data": data
+            }
+
+
