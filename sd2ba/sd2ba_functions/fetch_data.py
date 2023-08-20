@@ -6,13 +6,12 @@ import logging
 import sys
 
 import requests
-
 from requests.adapters import HTTPAdapter, Retry
 
-from sd2ba_functions.API_URLS import (
+from sd2ba_functions.API_URL import (
         UNIPROT_UNIREF_JSON_API_URL, RSCB_PDB_API_URL,
         UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL,
-        PFAM_HMM_API_URL,
+        PFAM_HMM_API_URL, RSCB_PDB_FASTA_API_URL, PDB_TO_UNIPROT_JSON_API_URL,
         )
 from sd2ba_functions.handle_data import handle_uniref_json, handle_uniprot_entry_json, read_single_fasta
 
@@ -230,6 +229,18 @@ def get_ena_nucleotide_sequence(code):
 
 
 def get_hmm_file(pfam_code):
+    """
+    Get HMM file data for a given PFAM code.
+
+    Parameters:
+        pfam_code (str): The PFAM code to retrieve the file data for.
+
+    Returns:
+        str: The HMM file data in text format.
+
+    Raises:
+        SystemExit: If the request to PFAM for the HMM file fails.
+    """
 
     url = PFAM_HMM_API_URL.format(code=pfam_code)
 
@@ -255,4 +266,86 @@ def get_hmm_file(pfam_code):
             + f"Url used was {url}. The script has stopped."
             )
     sys.exit("\n** CRITICAL: Request to PFAM failed. Check log file for detailed info. **")
+
+
+def get_aa_sequence_from_pdb(pdbcode):
+    """
+    Get amino acid sequence from RSCB PDB for a given code.
+
+    Parameters:
+        pdbcode (str): The PDB code to retrieve the sequence for.
+
+    Returns:
+        str: The amino acid sequence in text format.
+
+    Raises:
+        SystemExit: If the request to RSCB PDB for the PDB file fails.
+    """
+
+    url = RSCB_PDB_FASTA_API_URL.format(code=pdbcode)
+
+    response = make_request_with_retries(url)
+
+    if response.status_code == 200:
+        logging.debug(
+                f"RSCB PDB request for {pdbcode} fasta amino sequence was successful. "
+                + f"Url used was {url}."
+                )
+
+        return response.text
+
+    logging.critical(
+            f"RSCB PDB request for {pdbcode} fasta amino sequence was unsuccessful. "
+            + f"Url used was {url}. The script has stopped."
+            )
+
+    sys.exit("\n** CRITICAL: Request to RSCB PDB failed. Check log file for detailed info. **")
+
+
+def get_up_code_from_pdb_code(pdbcode):
+    """
+    Get UniProt code from RSCB PDB for a given code.
+
+    Parameters:
+        pdbcode (str): The PDB code to retrieve the UniProt code for.
+
+    Returns:
+        str: The UniProt code in text format.
+
+    Raises:
+        SystemExit: If the request to UniProt for an UniProt code from PDB code fails.
+    """
+
+    url = PDB_TO_UNIPROT_JSON_API_URL.format(code=pdbcode)
+
+    response = make_request_with_retries(url)
+
+    if response.status_code == 200:
+        logging.debug(
+                f"UniProt request for {pdbcode} UniProt code was successful. "
+                + f"Url used was {url}."
+                )
+
+        results = response.json()
+
+        if not len(results):
+            logging.critical(
+                    f"UniProt request for {pdbcode} UniProt code was unsuccessful. "
+                    + f"Url used was {url}. The script has stopped."
+                    )
+
+            sys.exit("\n** CRITICAL: Request to UniProt for a UniProt code "
+                    + " from PDB code failed. Check log file for detailed info. **")
+
+        return results["results"][0]["primaryAccession"]
+
+    logging.critical(
+            f"RSCB PDB request for {pdbcode} UniProt code was unsuccessful. "
+            + f"Url used was {url}. The script has stopped."
+            )
+
+    sys.exit("\n** CRITICAL: Request to RSCB PDB failed. Check log file for detailed info. **")
+
+
+
 

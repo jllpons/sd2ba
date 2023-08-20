@@ -10,10 +10,17 @@ import argparse
 from functools import total_ordering
 import logging
 import os
+import subprocess
 import sys
 
-from sd2ba_functions.fetch_data import get_pdb_file, get_hmm_file
+from sd2ba_functions.fetch_data import (
+        get_ena_nucleotide_sequence, get_pdb_file, get_hmm_file,
+        get_aa_sequence_from_pdb, get_up_code_from_pdb_code, get_uniprot_entry_data
+        )
 from sd2ba_functions.handle_data import get_solved_residues_from_pdb, read_multiple_fasta
+from sd2ba_functions.SCRIPT_ARGS import (
+        HMMER_ARGS,
+        )
 
 
 __version__ = "0.0.0"
@@ -42,6 +49,7 @@ class ReferenceProtein(Protein):
 
     def __init__(self, header: str):
         super().__init__(header)
+        self.aa_sequence_pdb = ""
         self.aa_with_known_positions = {}
 
 
@@ -109,7 +117,6 @@ def main():
         sys.exit(f"\n** The PDB code of the reference protein must specify the chain and provided was: {pdb_code} **")
     # PFAM code
     pfam_code = args.pfam_code.upper()
-
     # Amino fasta file
     aa_fasta = args.aa_fasta
     if not os.path.isfile(aa_fasta):
@@ -150,16 +157,34 @@ def main():
     logging.debug(f"PDB file for {pdb_code} was saved in {pdb_file}")
 
     ref_protein = ReferenceProtein(header=pdb_code)
-    # get_solved_residues_from_pdb() accesses the PDB file
-    # and returns a dictionary with the solved residues
     try:
+        # get_solved_residues_from_pdb() accesses the PDB file
+        # and returns a dictionary with the solved residues
         ref_protein.aa_with_known_positions=get_solved_residues_from_pdb(pdb_code, pdb_file)
     except:
         logging.critical(f"Error while parsing the PDB file of {pdb_code}")
         logging.critical("script ended")
         sys.exit("\n** Error while parsing the PDB file, check the log file for more information **")
 
-    logging.info(f"Reference protein {pdb_code} has {len(ref_protein.aa_with_known_positions)} solved residues")
+    ref_protein.aa_sequence_pdb = get_aa_sequence_from_pdb(pdb_code[:4])
+    uniprot_entry = get_uniprot_entry_data(get_up_code_from_pdb_code(pdb_code[:4]))
+    if uniprot_entry["successful"] == False:
+        logging.critical(f"Error accessing the Uniprot entry of {pdb_code}")
+        logging.critical("script ended")
+        sys.exit("\n** Error accessing the Uniprot entry, check the log file for more information **")
+    ref_protein.aa_sequence = uniprot_entry["uniprot_aa_sequence"]
+
+    ena_entry = get_ena_nucleotide_sequence(uniprot_entry["ena_accession"])
+    if ena_entry["successful"] == False:
+        logging.critical(f"Error accessing the ENA entry of {pdb_code}")
+        logging.critical("script ended")
+        sys.exit("\n** Error accessing the ENA entry, check the log file for more information **")
+    ref_protein.nt_sequence = ena_entry["fasta"]["sequence"]
+
+    logging.info(f"Reference protein {pdb_code} has {len(ref_protein.aa_with_known_positions)} solved residues: "
+            + f"[{list(ref_protein.aa_with_known_positions.keys())[0]}"
+            + f"..{list(ref_protein.aa_with_known_positions.keys())[-1]}]"
+            )
 
     hmm_file = output_path + f"/{pfam_code}.hmm"
     with open(hmm_file, "w") as handle:
@@ -168,6 +193,7 @@ def main():
         handle.write(get_hmm_file(pfam_code))
     logging.debug(f"HMM file for {pfam_code} was saved in {hmm_file}")
 
+    # Parsing the amino and nucleotide fasta files
     aa_sequences = {}
     with open(aa_fasta, "r") as handle:
         records = read_multiple_fasta(handle.read())
@@ -194,17 +220,88 @@ def main():
 
     logging.info(f"{len(nt_sequences)} nucleotide sequences were read from {nt_fasta}")
 
+    # The number of amino acid and nucleotide sequences must be the same
     if len(aa_sequences) != len(nt_sequences):
         logging.critical("The number of amino acid and nucleotide sequences must be the same")
         logging.critical("script ended")
         sys.exit("\n** The number of amino acid and nucleotide sequences must be the same **")
 
+    # Loading the amino acid and nucleotide sequences into Protein objects
     proteins = []
     for header in aa_sequences.keys():
         p = Protein(header=header)
         p.aa_sequence = aa_sequences[header]
         p.nt_sequence = nt_sequences[header]
         proteins.append(p)
+
+    # The reference protein will be the first one in the list
+    proteins.insert(0, ref_protein)
+
+    input_with_pdb_aa_fasta = output_path + f"/input_with_{pdb_code}_amino.fasta"
+    input_with_pdb_nt_fasta = output_path + f"/input_with_{pdb_code}_nucleotide.fasta"
+
+    # Rerwiting the input files with the reference protein as the first one
+    with open(input_with_pdb_aa_fasta, "w") as handle:
+        for p in proteins:
+            handle.write(f">{p.header}\n{p.aa_sequence}\n")
+
+    with open(input_with_pdb_nt_fasta, "w") as handle:
+        for p in proteins:
+            handle.write(f">{p.header}\n{p.nt_sequence}\n")
+
+    logging.info(
+            f"Nuclotide and amino acid sequences file were rewritten with {pdb_code} as the first sequence "
+            + f"and saved in {input_with_pdb_aa_fasta} and {input_with_pdb_nt_fasta}"
+            )
+
+    # Running HMMER to make a multiple sequence alignment
+    hmmalign_call = subprocess.run(
+                        HMMER_ARGS
+                            .format(
+                                hmm_filepath=hmm_file,
+                                aa_seq_filepath=input_with_pdb_aa_fasta,
+                                )
+                            .split(),
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        )
+
+    logging.debug(f"HMMER call: {hmmalign_call.args}")
+    logging.debug(f"HMMER stdout: {hmmalign_call.stdout.decode('utf-8')}")
+    logging.debug(f"HMMER stderr: {hmmalign_call.stderr.decode('utf-8')}")
+    logging.debug(f"HMMER return code: {hmmalign_call.returncode}")
+
+    if hmmalign_call.returncode != 0:
+        logging.critical(f"HMMER call failed with return code {hmmalign_call.returncode}")
+        logging.critical("script ended")
+        sys.exit("\n** HMMER call failed, check the log file for more information **")
+
+    # The hmmalign output is written in afa format. We will convert it to fasta
+    # and save it to a file
+    SED_ARGV = ["sed", r"s/\./-/g"]
+    hmmalign_output = output_path + "/hmmalign_output.fasta"
+
+    with open(hmmalign_output, "w") as handle:
+        sed_call = subprocess.run(
+                        SED_ARGV,
+                        input=hmmalign_call.stdout,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        )
+
+        logging.debug(f"sed call: {sed_call.args}")
+        logging.debug(f"sed stdout: {sed_call.stdout.decode('utf-8')}")
+        logging.debug(f"sed stderr: {sed_call.stderr.decode('utf-8')}")
+        logging.debug(f"sed return code: {sed_call.returncode}")
+
+        if sed_call.returncode != 0:
+            logging.critical(f"sed call failed with return code {sed_call.returncode}")
+            logging.critical("script ended")
+            sys.exit("\n** sed call failed, check the log file for more information **")
+
+        handle.write(sed_call.stdout.decode("utf-8"))
+
+    logging.info(f"HMMER output was saved in {hmmalign_output}")
 
 
 if __name__ == "__main__":
