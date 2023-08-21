@@ -7,7 +7,6 @@ sd2ba: Segmented Domain to Breakpoint Analysis
 
 
 import argparse
-from functools import total_ordering
 import logging
 import os
 import sys
@@ -18,16 +17,15 @@ from sd2ba_functions.fetch_data import (
         )
 from sd2ba_functions.handle_data import get_solved_residues_from_pdb, read_multiple_fasta
 from sd2ba_functions.SCRIPT_ARGS import (
-        HMMER_ARGS,
-        SED_ARGS_AFA_TO_FASTA
+        HMMER_ARGS, SED_ARGS_AFA_TO_FASTA, PAL2NAL_ARGS,
         )
 from sd2ba_functions.subprocess import run_subprocess
+from sd2ba_functions.identity import calculate_identity_score
 
 
 __version__ = "0.0.0"
 
 
-@total_ordering
 class Protein:
 
     def __init__(self, header: str):
@@ -35,16 +33,7 @@ class Protein:
         self.aa_sequence = ""
         self.nt_sequence = ""
         self.aligned_aa_sequence = ""
-        self.similarity_value = 0
-
-    def __eq__(self, other):
-        return self.similarity_value == other.similarity_value
-
-    def __lt__(self, other):
-        return self.similarity_value < other.similarity_value
-
-    def __gt__(self, other):
-        return self.similarity_value > other.similarity_value
+        self.identity_score = 0
 
 
 class ReferenceProtein(Protein):
@@ -156,7 +145,7 @@ def main():
         # get_pdb_file() returns a string with the obtained PDB file
         # If the request was unsuccessful, the script will exit
         handle.write(get_pdb_file(pdb_code[:4]))
-    logging.debug(f"PDB file for {pdb_code} was saved in {pdb_file}")
+    logging.info(f"PDB file for {pdb_code} was saved in {pdb_file}")
 
     ref_protein = ReferenceProtein(header=pdb_code)
     try:
@@ -193,7 +182,7 @@ def main():
         # get_hmm_file() returns a string with the obtained HMM file
         # If the request was unsuccessful, the script will exit
         handle.write(get_hmm_file(pfam_code))
-    logging.debug(f"HMM file for {pfam_code} was saved in {hmm_file}")
+    logging.info(f"HMM file for {pfam_code} was saved in {hmm_file}")
 
     # Parsing the amino and nucleotide fasta files
     aa_sequences = {}
@@ -298,6 +287,44 @@ def main():
 
     for p in proteins:
         p.aligned_aa_sequence = msa_proteins[p.header]
+        p.identity_score = calculate_identity_score(
+                            query=ref_protein.aligned_aa_sequence,
+                            subject=p.aligned_aa_sequence,
+                            )
+
+    proteins.sort(key=lambda x: x.identity_score, reverse=True)
+
+    logging.info("Identity scores were calculated for each sequence and proteins were sorted by that value")
+    logging.debug(
+                "Identity scores: \n"
+                + "\n".join(
+                    [i.header + ": " + str(i.identity_score) for i in proteins]
+                    )
+                )
+    msa_sorted_by_identity = output_path + "/msa_sorted_by_identity.fasta"
+    with open(msa_sorted_by_identity, "w") as handle:
+        for p in proteins:
+            handle.write(f">{p.header}\n{p.aligned_aa_sequence}\n")
+
+    logging.info(f"MSA was sorted by identity score and saved in {msa_sorted_by_identity}")
+
+    # pal2nal will be used to convert the multiple sequence alignment into a codon alignment
+    pal2nal_stdout = run_subprocess(
+                        "PAL2NAL",
+                        PAL2NAL_ARGS
+                            .format(
+                                msa_aa_filepath=msa_sorted_by_identity,
+                                nt_filepath=input_with_pdb_nt_fasta,
+                                )
+                            .split(),
+                            )
+    logging.info("PAL2NAL was used to convert the multiple sequence alignment into a codon alignment")
+
+    pal2nal_output = output_path + "/pal2nal_output.fasta"
+    with open(pal2nal_output, "w") as handle:
+        handle.write(pal2nal_stdout.decode("utf-8"))
+
+    logging.info(f"PAL2NAL output was saved in {pal2nal_output}")
 
 
 if __name__ == "__main__":
