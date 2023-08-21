@@ -10,7 +10,6 @@ import argparse
 from functools import total_ordering
 import logging
 import os
-import subprocess
 import sys
 
 from sd2ba_functions.fetch_data import (
@@ -20,7 +19,9 @@ from sd2ba_functions.fetch_data import (
 from sd2ba_functions.handle_data import get_solved_residues_from_pdb, read_multiple_fasta
 from sd2ba_functions.SCRIPT_ARGS import (
         HMMER_ARGS,
+        SED_ARGS_AFA_TO_FASTA
         )
+from sd2ba_functions.subprocess import run_subprocess
 
 
 __version__ = "0.0.0"
@@ -33,6 +34,7 @@ class Protein:
         self.header = header
         self.aa_sequence = ""
         self.nt_sequence = ""
+        self.aligned_aa_sequence = ""
         self.similarity_value = 0
 
     def __eq__(self, other):
@@ -255,53 +257,47 @@ def main():
             )
 
     # Running HMMER to make a multiple sequence alignment
-    hmmalign_call = subprocess.run(
+    hmmalign_stdout = run_subprocess(
+                        "HMMALIGN",
                         HMMER_ARGS
                             .format(
                                 hmm_filepath=hmm_file,
                                 aa_seq_filepath=input_with_pdb_aa_fasta,
                                 )
                             .split(),
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        )
-
-    logging.debug(f"HMMER call: {hmmalign_call.args}")
-    logging.debug(f"HMMER stdout: {hmmalign_call.stdout.decode('utf-8')}")
-    logging.debug(f"HMMER stderr: {hmmalign_call.stderr.decode('utf-8')}")
-    logging.debug(f"HMMER return code: {hmmalign_call.returncode}")
-
-    if hmmalign_call.returncode != 0:
-        logging.critical(f"HMMER call failed with return code {hmmalign_call.returncode}")
-        logging.critical("script ended")
-        sys.exit("\n** HMMER call failed, check the log file for more information **")
+                            )
+    logging.info("HMMER's HMMALIGN  was used to make a multiple sequence alignment")
 
     # The hmmalign output is written in afa format. We will convert it to fasta
     # and save it to a file
-    SED_ARGV = ["sed", r"s/\./-/g"]
     hmmalign_output = output_path + "/hmmalign_output.fasta"
-
     with open(hmmalign_output, "w") as handle:
-        sed_call = subprocess.run(
-                        SED_ARGV,
-                        input=hmmalign_call.stdout,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
+        sed_stdout = run_subprocess(
+                        "SED",
+                        SED_ARGS_AFA_TO_FASTA,
+                        input=hmmalign_stdout,
                         )
+        handle.write(sed_stdout.decode("utf-8"))
 
-        logging.debug(f"sed call: {sed_call.args}")
-        logging.debug(f"sed stdout: {sed_call.stdout.decode('utf-8')}")
-        logging.debug(f"sed stderr: {sed_call.stderr.decode('utf-8')}")
-        logging.debug(f"sed return code: {sed_call.returncode}")
-
-        if sed_call.returncode != 0:
-            logging.critical(f"sed call failed with return code {sed_call.returncode}")
-            logging.critical("script ended")
-            sys.exit("\n** sed call failed, check the log file for more information **")
-
-        handle.write(sed_call.stdout.decode("utf-8"))
-
+    logging.info("SED was called to convert the hmmalign output to fasta format")
     logging.info(f"HMMER output was saved in {hmmalign_output}")
+
+    # Loading the multiple sequence alignment sequences into the Protein objects
+    msa_proteins = []
+    with open(hmmalign_output, "r") as handle:
+        records = read_multiple_fasta(handle.read())
+
+        if records["successful"] == False:
+            logging.critical(f"Error while parsing the multiple sequence alignment file {hmmalign_output}")
+            logging.critical("script ended")
+            sys.exit("\n** Error while parsing the multiple sequence alignment file, check the log file for more information **")
+
+        msa_proteins = records["data"]
+
+    logging.info(f"{len(msa_proteins)} sequences were read from {hmmalign_output}")
+
+    for p in proteins:
+        p.aligned_aa_sequence = msa_proteins[p.header]
 
 
 if __name__ == "__main__":
