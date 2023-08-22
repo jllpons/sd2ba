@@ -3,6 +3,7 @@
 
 import json
 import logging
+import sys
 
 from Bio.PDB import PDBParser
 
@@ -235,5 +236,64 @@ def read_multiple_fasta(text):
             "successful": True,
             "data": data
             }
+
+
+def handle_gard_json_output(gard_json_output_filepath):
+    """
+    Handles the output of GARD.
+
+    Args:
+        gard_json_output (str): The path to the JSON output of GARD.
+
+    Returns:
+        dict:
+            - successful (bool): Indicates whether the handling was successful.
+            - data (dict): A dictionary containing the breakpoints.
+                - nucleotide (dict): A dictionary containing the nucleotide breakpoints.
+                    - start (int): The start of the breakpoint.
+                    - end (int): The end of the breakpoint.
+                - aminoacid_decimal (dict): A dictionary containing the aminoacid breakpoints.
+                    - start (float): The start of the breakpoint.
+                    - end (float): The end of the breakpoint.
+                - aminoacid_rounded (dict): A dictionary containing the aminoacid breakpoints.
+                    - start (int): The start of the breakpoint.
+                    - end (int): The end of the breakpoint.
+    """
+
+    try:
+        with open(gard_json_output_filepath, "r") as gard_json_output_file:
+            gard_json_output = json.load(gard_json_output_file)
+    except:
+        logging.error("Could not open the GARD JSON output file.")
+        sys.exit(f"\n ** ERROR: Could not open the GARD JSON output file: {gard_json_output_filepath}")
+
+    breakpoints = {}
+
+    try:
+
+        for i in range(len(gard_json_output["breakpointData"])):
+
+            breakpoints[i] = {
+                    "nucleotide" : {
+                        "start" : gard_json_output["breakpointData"][str(i)]["bps"][0][0],
+                        "end" : gard_json_output["breakpointData"][str(i)]["bps"][0][1],
+                        },
+                    "aminoacid_decimal" : {
+                        "start" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][0]) / 3, 2),
+                        "end" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3, 2),
+                        },
+                    "aminoacid_rounded" : {
+                        "start" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][0]) / 3),
+                        "end" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3),
+                        },
+                    }
+
+        return {
+                "successful": True,
+                "data": breakpoints,
+                }
+
+    except:
+        return {"successful": False}
 
 

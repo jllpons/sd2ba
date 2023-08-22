@@ -347,5 +347,3 @@ def get_up_code_from_pdb_code(pdbcode):
     sys.exit("\n** CRITICAL: Request to RSCB PDB failed. Check log file for detailed info. **")
 
 
-
-

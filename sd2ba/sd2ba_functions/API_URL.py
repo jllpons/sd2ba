@@ -14,3 +14,5 @@ RSCB_PDB_FASTA_API_URL = "https://www.rcsb.org/fasta/entry/{code}/display"
 
 PDB_TO_UNIPROT_JSON_API_URL = "https://rest.uniprot.org/uniprotkb/search?format=json&query=%28{code}%29&size=500"
 
+DATAMONKEY_API_POST_URL = "http://datamonkey.org/api/v1/submit"
+

@@ -13,11 +13,13 @@ import sys
 
 from sd2ba_functions.fetch_data import (
         get_ena_nucleotide_sequence, get_pdb_file, get_hmm_file,
-        get_aa_sequence_from_pdb, get_up_code_from_pdb_code, get_uniprot_entry_data
+        get_aa_sequence_from_pdb, get_up_code_from_pdb_code, get_uniprot_entry_data,
         )
-from sd2ba_functions.handle_data import get_solved_residues_from_pdb, read_multiple_fasta
+from sd2ba_functions.handle_data import (
+        get_solved_residues_from_pdb, read_multiple_fasta, handle_gard_json_output
+        )
 from sd2ba_functions.SCRIPT_ARGS import (
-        HMMER_ARGS, SED_ARGS_AFA_TO_FASTA, PAL2NAL_ARGS,
+        HMMER_ARGS, SED_ARGS_AFA_TO_FASTA, PAL2NAL_ARGS, HYPHY_GARD_ARGS,
         )
 from sd2ba_functions.subprocess import run_subprocess
 from sd2ba_functions.identity import calculate_identity_score
@@ -325,6 +327,26 @@ def main():
         handle.write(pal2nal_stdout.decode("utf-8"))
 
     logging.info(f"PAL2NAL output was saved in {pal2nal_output}")
+
+    # Running hyphy's GARD to detect recombination breakpoints
+    print("\n** INFO: Running HYPHY-GARD to detect recombination breakpoints. It may take a while **\n")
+    gard_stdout = run_subprocess(
+                    "HYPHY-GARD",
+                    HYPHY_GARD_ARGS
+                        .format(
+                            pal2nal_filepath=pal2nal_output,
+                            )
+                        .split(),
+                        )
+    logging.info("HYPHY-GARD was used to detect recombination breakpoints")
+    logging.info("HYPHY-GARD stdoutput: \n" + gard_stdout.decode("utf-8"))
+
+    # Parsing the HYPHY-GARD output
+    hyphy_gard_json_output = output_path + "/pal2nal_output.fasta.GARD.json"
+    logging.debug(f"Parsing HYPHY-GARD output: {hyphy_gard_json_output}")
+    breakpoint_info = handle_gard_json_output(hyphy_gard_json_output)
+
+    print(breakpoint_info["data"])
 
 
 if __name__ == "__main__":
