@@ -12,6 +12,7 @@ from sd2ba_functions.API_URL import (
         UNIPROT_UNIREF_JSON_API_URL, RSCB_PDB_API_URL,
         UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL,
         PFAM_HMM_API_URL, RSCB_PDB_FASTA_API_URL, PDB_TO_UNIPROT_JSON_API_URL,
+        EBI_MAPPING_PDBE_API_URL,
         )
 from sd2ba_functions.handle_data import handle_uniref_json, handle_uniprot_entry_json, read_single_fasta
 
@@ -346,4 +347,48 @@ def get_up_code_from_pdb_code(pdbcode):
 
     sys.exit("\n** CRITICAL: Request to RSCB PDB failed. Check log file for detailed info. **")
 
+
+def get_domain_info_from_pdb(pdb_code):
+    """
+    Get domain info from EBI for a given code.
+
+    Parameters:
+        pdbcode (str): The PDB code to retrieve the domain info for.
+
+    Returns:
+        dict: The domain info in json format.
+
+    Raises:
+        SystemExit: If the request to EBI for domain info fails.
+    """
+
+    url = EBI_MAPPING_PDBE_API_URL.format(code=pdb_code)
+
+    response = make_request_with_retries(url)
+
+    if response.status_code == 200:
+        logging.debug(
+                f"EBI request for {pdb_code} domain info was successful. "
+                + f"Url used was {url}."
+                )
+
+        results = response.json()
+
+        if not len(results):
+            logging.critical(
+                    f"EBI request for {pdb_code} domain info was unsuccessful. "
+                    + f"Url used was {url}. The script has stopped."
+                    )
+
+            sys.exit("\n** CRITICAL: Request to EBI for domain info failed. "
+                    + "Check log file for detailed info. **")
+
+        return results[pdb_code.lower()]
+
+    logging.critical(
+            f"EBI request for {pdb_code} domain info was unsuccessful. "
+            + f"Url used was {url}. The script has stopped."
+            )
+
+    sys.exit("\n** CRITICAL: Request to EBI failed. Check log file for detailed info. **")
 

@@ -3,6 +3,7 @@
 
 import json
 import logging
+import math
 import sys
 
 from Bio.PDB import PDBParser
@@ -238,6 +239,7 @@ def read_multiple_fasta(text):
             }
 
 
+# TODO: modify this function to handle start position argument with 0 as default value.
 def handle_gard_json_output(gard_json_output_filepath):
     """
     Handles the output of GARD.
@@ -283,8 +285,9 @@ def handle_gard_json_output(gard_json_output_filepath):
                         "end" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3, 2),
                         },
                     "aminoacid_rounded" : {
-                        "start" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][0]) / 3),
-                        "end" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3),
+                        # Is this correct?
+                        "start" : math.ceil((gard_json_output["breakpointData"][str(i)]["bps"][0][0]) / 3),
+                        "end" : math.ceil((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3),
                         },
                     }
 
@@ -295,5 +298,88 @@ def handle_gard_json_output(gard_json_output_filepath):
 
     except:
         return {"successful": False}
+
+def map_domain_from_cath(ebi_mapping_response):
+    """
+    Maps the domain from CATH's data.
+
+    Args:
+        ebi_mapping_response (dict): The response of the EBI mapping service.
+
+    Returns:
+        dict: A dictionary containing the domain data.
+        - index (dict): A dictionary containing the domain data.
+            - id (str): The ID of the domain.
+            - info (dict): A dictionary containing the information of the domain.
+                - name (str): The name of the domain.
+                - class (str): The class of the domain.
+                - architechture (str): The architechture of the domain.
+                - topology (str): The topology of the domain.
+                - homology (str): The homology of the domain.
+            - segments (dict): A dictionary containing the segments of the domain.
+                - index (dict): A dictionary containing the segment data.
+                    - start (int): The start of the segment.
+                    - end (int): The end of the segment.
+    """
+
+
+    cath_data = ebi_mapping_response["CATH"]
+
+    domain_data = {}
+    # Iterate over the different domains.
+    for index, name in enumerate(cath_data):
+        domain_data[index] = {
+                "id": name,
+                "info" : {
+                    "name" : cath_data[name]["name"],
+                    "class" : cath_data[name]["class"],
+                    "architechture" : cath_data[name]["architecture"],
+                    "topology" : cath_data[name]["topology"],
+                    "homology" : cath_data[name]["homology"],
+                    },
+                "segments" : {}
+                }
+
+        for i in range(len(cath_data[name]["mappings"])):
+            domain_data[index]["segments"][i] = {
+                    "start" : cath_data[name]["mappings"][i]["start"]["residue_number"],
+                    "end" : cath_data[name]["mappings"][i]["end"]["residue_number"],
+                    }
+
+    return domain_data
+
+
+def handle_domain_mapping(domain_mapping):
+    """
+    Handles the domain mapping.
+
+    Args:
+        domain_mapping (dict): The domain mapping.
+
+    Returns:
+        dict: A dictionary containing the segments of the domain sorted by their start position.
+        - index (dict): A dictionary containing the domain mapping.
+            - id (str): The ID of the domain.
+            - start (int): The start of the domain.
+            - end (int): The end of the domain.
+    """
+
+
+    segments = {}
+    for i in domain_mapping:
+        for j in domain_mapping[i]["segments"]:
+            segments[f"{i}{j}"] = {
+                    "id" : f"{domain_mapping[i]['id']}",
+                    "start" : domain_mapping[i]["segments"][j]["start"],
+                    "end" : domain_mapping[i]["segments"][j]["end"],
+                    }
+
+    # Sort the segments by their start position.
+    # x[1] is the value of the dictionary. (x[0] is the key)
+    segments_sorted =  sorted(segments.items(), key=lambda x: x[1]["start"])
+
+    return {key: value for key, value in segments_sorted}
+
+
 
 

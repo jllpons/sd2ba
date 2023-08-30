@@ -37,7 +37,7 @@ def run_subprocess(process_name, args, input=None):
                             stderr=subprocess.PIPE,
                             )
 
-    logging.debug(f"{process_name} call: {call.args}")
+    logging.info(f"{process_name} call: {call.args}")
     logging.debug(f"{process_name} stdout: {call.stdout.decode('utf-8')}")
     logging.debug(f"{process_name} stderr: {call.stderr.decode('utf-8')}")
     logging.debug(f"{process_name} returncode: {call.returncode}")
