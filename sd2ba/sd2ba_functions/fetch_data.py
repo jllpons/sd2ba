@@ -253,9 +253,7 @@ def get_hmm_file(pfam_code):
                 + f"Url used was {url}."
                 )
         try:
-            # Interpro returns gzipped files.
-            # Will they all be gzipped?
-            # This is what trust issues look like.
+            # Trust issues
             response = gzip.decompress(response.content)
             return response.decode("utf-8")
 

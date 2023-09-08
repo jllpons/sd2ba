@@ -334,7 +334,7 @@ def main():
                     [i.header + ": " + str(i.identity_score) for i in proteins]
                     )
                 )
-    # INFO: This is the MSA that will be piped into PAL2NAL
+    # NOTE: This is the MSA that will be piped into PAL2NAL
     msa_sorted_by_identity = output_path + "/hmmalign_output_sorted_by_identity.fasta"
     with open(msa_sorted_by_identity, "w") as handle:
         for p in proteins:
@@ -381,16 +381,14 @@ def main():
     logging.debug(f"Breakpoint info: \n{breakpoint_info}\n")
     # Sequences used in GARD analysis has been trimmed. We need to find the
     # start position of the aligned sequence in the original sequences
-    ref_protein.start_pos_of_aligned_aa_sequence = start_pos_of_aligned_aa_sequence(
-                                                    ref_protein.aa_sequence,
-                                                    ref_protein.aligned_aa_sequence,
+    ref_protein.start_pos_of_aligned_aa_sequence = start_pos_in_trimmed_sequence(
+                                                    complete=ref_protein.aa_sequence,
+                                                    trimmed=ref_protein.aligned_aa_sequence,
                                                     )
     logging.info(f"Start position of the aligned sequence in the original sequence was identified for {pdb_code}")
     breakpoint_info_with_aligned_start_pos = handle_gard_json_output(
                                                 HYPHY_GARD_JSON_OUTPUT,
-                                                # TODO: Modify this function to accept start_pos_of_aligned_aa_sequence as an argument
-                                                # defalut would be 0
-                                                start_pos_of_aligned_aa_sequence=ref_protein.start_pos_of_aligned_aa_sequence,
+                                                start_position=ref_protein.start_pos_of_aligned_aa_sequence,
                                                 )
     logging.debug(f"Breakpoint info with aligned start pos: \n{breakpoint_info_with_aligned_start_pos}\n")
 
@@ -412,6 +410,7 @@ def main():
                                                 handle_domain_mapping(ref_protein.domain_mapping),
                                                 ),
             "gard_results" : breakpoint_info["data"],
+            "start_pos_of_aligned_aa_sequence" : ref_protein.start_pos_of_aligned_aa_sequence,
             "gard_results_with_aligned_start_pos" : breakpoint_info_with_aligned_start_pos["data"],
             "gard_results_representation" : {
                 i.header : generate_representation(

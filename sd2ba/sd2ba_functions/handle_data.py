@@ -239,8 +239,7 @@ def read_multiple_fasta(text):
             }
 
 
-# TODO: modify this function to handle start position argument with 0 as default value.
-def handle_gard_json_output(gard_json_output_filepath):
+def handle_gard_json_output(gard_json_output_filepath, start_position=0):
     """
     Handles the output of GARD.
 
@@ -262,6 +261,9 @@ def handle_gard_json_output(gard_json_output_filepath):
                     - end (int): The end of the breakpoint.
     """
 
+    START_POSITION_AA = start_position
+    START_POSITION_NT = start_position * 3
+
     try:
         with open(gard_json_output_filepath, "r") as gard_json_output_file:
             gard_json_output = json.load(gard_json_output_file)
@@ -277,17 +279,29 @@ def handle_gard_json_output(gard_json_output_filepath):
 
             breakpoints[i] = {
                     "nucleotide" : {
-                        "start" : gard_json_output["breakpointData"][str(i)]["bps"][0][0],
-                        "end" : gard_json_output["breakpointData"][str(i)]["bps"][0][1],
+                        "start" :
+                        (gard_json_output["breakpointData"][str(i)]["bps"][0][0]
+                         + START_POSITION_NT),
+                        "end" : 
+                        (gard_json_output["breakpointData"][str(i)]["bps"][0][1]
+                         + START_POSITION_NT),
                         },
                     "aminoacid_decimal" : {
-                        "start" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][0]) / 3, 2),
-                        "end" : round((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3, 2),
+                        "start" : 
+                        (round((gard_json_output["breakpointData"][str(i)]["bps"][0][0]) / 3, 2)
+                         + START_POSITION_NT),
+                        "end" : 
+                        ( round((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3, 2)
+                         + START_POSITION_NT),
                         },
                     "aminoacid_rounded" : {
                         # Is this correct?
-                        "start" : math.ceil((gard_json_output["breakpointData"][str(i)]["bps"][0][0]) / 3),
-                        "end" : math.ceil((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3),
+                        "start" :
+                        (math.ceil((gard_json_output["breakpointData"][str(i)]["bps"][0][0]) / 3)
+                         + START_POSITION_AA),
+                        "end" : 
+                        (math.ceil((gard_json_output["breakpointData"][str(i)]["bps"][0][1]) / 3)
+                         + START_POSITION_AA),
                         },
                     }
 
