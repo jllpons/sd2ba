@@ -38,20 +38,12 @@ conda install -c conda-forge biopython
 
 - [HMMER](<https://anaconda.org/bioconda/hmmer>): perform a MSA of the input
   proteins using a HMM
+- [pal2nal](<https://anaconda.org/bioconda/pal2nal>): convert a MSA and the corresponding DNA sequences into a codon alignmet
+- [HYPHY](<https://anaconda.org/bioconda/hyphy/>): analyze a codon aligment with GARD (Genetic Algorithm for Recombination Detection)
 
 ```shell
 conda install -c bioconda hmmer
-```
-
-- [pal2nal](<https://anaconda.org/bioconda/pal2nal>): convert a MSA and the corresponding DNA sequences into a codon alignmet
-
-```shell
 conda install -c bioconda pal2nal
-```
-
-- [HYPHY](<https://anaconda.org/bioconda/hyphy/>): to analyze a codon aligment with GARD (Genetic Algorithm for Recombination Detection)
-
-```shell
 conda install -c bioconda hyphy
 ```
 
