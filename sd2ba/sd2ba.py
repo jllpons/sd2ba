@@ -27,7 +27,7 @@ from sd2ba_functions.SCRIPT_ARGS import (
 from sd2ba_functions.subprocess import run_subprocess
 from sd2ba_functions.identity import calculate_identity_score
 from sd2ba_functions.align import start_pos_in_trimmed_sequence
-from sd2ba_functions.output import generate_representation
+from sd2ba_functions.output import generate_representation, generate_text_report
 
 
 __version__ = "0.0.0"
@@ -424,6 +424,13 @@ def main():
     with open(report_json_path, "w") as handle:
 
         json.dump(report, handle, indent=4)
+
+    report_txt_path = output_path + "/report.txt"
+    with open(report_txt_path, "w") as handle:
+        handle.write(generate_text_report(report, pdb_code))
+
+    logging.info(f"Report was generated and saved in {report_json_path} and {report_txt_path}")
+    logging.info(f"Program finished successfully")
 
 
 if __name__ == "__main__":

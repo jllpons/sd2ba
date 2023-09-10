@@ -62,7 +62,7 @@ def generate_representation(sequence, fragments):
 
         if "aminoacid_rounded" in fragments[i].keys():
             end = fragments[i]["aminoacid_rounded"]["end"]
-            if end + 1 not in segment_positions:
+            if end not in segment_positions and end + 1 not in segment_positions:
                 segment_positions.append(end+1)
 
         else:
@@ -73,8 +73,7 @@ def generate_representation(sequence, fragments):
     representation = []
     accumulator = -1
     for i in range(len(sequence)):
-        if sequence[i] != '-':
-            accumulator += 1
+        accumulator += 1
 
         if accumulator+1 in segment_positions:
             representation.append('::')
@@ -83,3 +82,61 @@ def generate_representation(sequence, fragments):
             representation.append(sequence[i])
 
     return "".join(representation)
+
+
+def generate_text_report(dict_report, pdb_code):
+    """
+    Generates a text report with the results of the GARD analysis.
+
+    Args:
+        dict_report (dict): A dictionary with the results of the GARD analysis.
+        pdb_code (str): The PDB code of the solved structure.
+
+    Returns:
+        str: The text report.
+    """
+
+    first_header = f"1. Domain data for the solved structure: {pdb_code}\n\n"
+    solved_residues = (f"\t- {dict_report['domain_data']['n_solved_residues']} "
+                       + f"solved residues: [{dict_report['domain_data']['list_solved_residues'][0]}..{dict_report['domain_data']['list_solved_residues'][-1]}]\n")
+    domains_header = f"\t- Domains ({len(dict_report['domain_data']['domains'])}):\n"
+    segments = [f"\t\t- {dict_report['domain_data']['domains'][i]['id']}: amino [{dict_report['domain_data']['domains'][i]['start']}..{dict_report['domain_data']['domains'][i]['end']}]\n" for i in dict_report["domain_data"]["domains"]]
+    domains = domains_header + "".join(segments)
+    first_subheader = f"\n1.1. Domain data representation for {pdb_code}\n\n\t"
+    first_representation = f"{dict_report['domain_data_representation']}\n"
+    second_header = "\n2. GARD results for using the codon aligment of the input proteins\n\n"
+    predicted_breakpoints_header = f"\t- Predicted breakpoints ({len(dict_report['gard_results'])}):\n"
+    breakpoints = [f"\t\t- {i}: amino [{dict_report['gard_results'][i]['aminoacid_rounded']['start']}..{dict_report['gard_results'][i]['aminoacid_rounded']['end']}], nucleotide [{dict_report['gard_results'][i]['nucleotide']['start']}..{dict_report['gard_results'][i]['nucleotide']['end']}]\n" for i in dict_report["gard_results"]]
+    predicted_breakpoints = predicted_breakpoints_header + "".join(breakpoints)
+    second_subheader = f"\n2.1. GARD predicted breakpoints positions when the trimed amino acids in the {pdb_code} sequence are taken into account:\n\n"
+    little_explanation = f"\t(This means that the number of residues trimmed by HMMER ({dict_report['start_pos_of_aligned_aa_sequence']}) are added to the predicted breakpoints positions)\n\n"
+    breakpoints_w_trimmed = [f"\t\t- {i}: amino [{dict_report['gard_results_with_aligned_start_pos'][i]['aminoacid_rounded']['start']}..{dict_report['gard_results_with_aligned_start_pos'][i]['aminoacid_rounded']['end']}], nucleotide [{dict_report['gard_results_with_aligned_start_pos'][i]['nucleotide']['start']}..{dict_report['gard_results_with_aligned_start_pos'][i]['nucleotide']['end']}]\n" for i in dict_report["gard_results_with_aligned_start_pos"]]
+    predicted_breakpoints_w_trimmed = predicted_breakpoints_header + "".join(breakpoints_w_trimmed)
+    third_subheader = "\n2.2 Comparison of the representations of the segmented domain and the predicted breakpoints\n\n"
+    first_representation_fasta = f">{pdb_code} | PDB SEQUENCE | domain representation\n{first_representation}"
+    second_representation = (dict_report["start_pos_of_aligned_aa_sequence"] * "A"
+                             + f"{dict_report['gard_results_representation'][pdb_code.upper()]}")
+    second_representation_fasta = f">{pdb_code} | UNIPROT_SEQUENCE | GARD results representation\n{second_representation}\n"
+    fourth_subheader = "\n2.3. Representation of the predicted breakpoints for all of the input proteins\n\n"
+    representations = [f">{i}\n{dict_report['gard_results_representation'][i]}\n" for i in dict_report["gard_results_representation"]]
+
+    return (first_header
+            + solved_residues
+            + domains
+            + first_subheader
+            + first_representation
+            + second_header
+            + predicted_breakpoints
+            + second_subheader
+            + little_explanation
+            + predicted_breakpoints_w_trimmed
+            + third_subheader
+            + first_representation_fasta
+            + second_representation_fasta
+            + fourth_subheader
+            + "".join(representations)
+            )
+
+
+
+
