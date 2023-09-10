@@ -406,8 +406,9 @@ def main():
                 "domains" : handle_domain_mapping(ref_protein.domain_mapping),
                 },
             "domain_data_representation" : generate_representation(
-                                                ref_protein.aa_sequence_pdb,
-                                                handle_domain_mapping(ref_protein.domain_mapping),
+                                                sequence=ref_protein.aa_sequence_pdb,
+                                                fragments=handle_domain_mapping(ref_protein.domain_mapping),
+                                                start_pos=[i for i in ref_protein.aa_with_known_positions][0],
                                                 ),
             "gard_results" : breakpoint_info["data"],
             "start_pos_of_aligned_aa_sequence" : ref_protein.start_pos_of_aligned_aa_sequence,

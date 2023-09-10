@@ -25,7 +25,7 @@ The most convenient way of running sd2ba.py is through a conda environment:
 conda create --name sd2ba python=3.9
 ```
 
-### 3rd party Python libraries:
+### - 3rd party Python libraries:
 
 - [requests](<https://pypi.org/project/requests/>): fetch data from databases
 - [biopython](<https://pypi.org/project/biopython/>): handle PDB files
@@ -35,7 +35,7 @@ conda install -c anaconda requests
 conda install -c conda-forge biopython
 ```
 
-### 3rd party programs:
+### - 3rd party programs:
 
 - [HMMER](<https://anaconda.org/bioconda/hmmer>): perform a MSA of the input
   proteins using a HMM
@@ -73,10 +73,10 @@ output options:
                         Output directory [Default: $CWD/s2ba_output]
 ```
 
-### Example:
+### - Example:
 
 ```shell
-python sd2ba/sd2ba.py 2QGUA PF05494 test/data/3_aa_sequences.fasta test/data/3_nucleotide_sequences.fasta -o 3_protein_test
+./sd2ba/sd2ba.py 2QGUA PF05494 test/data/3_aa_sequences.fasta test/data/3_nucleotide_sequences.fasta -o 3_protein_test
 ```
 
 ## Documentation

@@ -9,7 +9,7 @@ def write_fasta(path, content):
     with open(path, 'w') as handle:
         handle.write(content)
 
-def generate_representation(sequence, fragments):
+def generate_representation(sequence, fragments, start_pos=0):
     """
     Generates a representation of the sequence with the fragments. Can be either
     a segmented domain or predicted breakpoints. The representation is a string
@@ -22,6 +22,7 @@ def generate_representation(sequence, fragments):
                           fragment ids and the values are dictionaries with the 
                           keys "start" and "end" that represent the start and 
                           end positions of the fragment.
+        start_pos (int): The start position of the sequence. Default is 0.
 
     Returns:
         str: The representation of the sequence with the fragments.
@@ -71,7 +72,7 @@ def generate_representation(sequence, fragments):
                 segment_positions.append(end-1)
 
     representation = []
-    accumulator = -1
+    accumulator = start_pos -1
     for i in range(len(sequence)):
         accumulator += 1
 
