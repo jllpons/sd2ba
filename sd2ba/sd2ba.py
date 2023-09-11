@@ -408,7 +408,7 @@ def main():
             "domain_data_representation" : generate_representation(
                                                 sequence=ref_protein.aa_sequence_pdb,
                                                 fragments=handle_domain_mapping(ref_protein.domain_mapping),
-                                                start_pos=[i for i in ref_protein.aa_with_known_positions][0],
+                                                header=f">{pdb_code} | PDB SEQUENCE | domain representation",
                                                 ),
             "gard_results" : breakpoint_info["data"],
             "start_pos_of_aligned_aa_sequence" : ref_protein.start_pos_of_aligned_aa_sequence,
@@ -416,7 +416,7 @@ def main():
             "gard_results_representation" : {
                 i.header : generate_representation(
                     i.aligned_aa_sequence,
-                    breakpoint_info_with_aligned_start_pos["data"])
+                    breakpoint_info["data"])
                 for i in proteins
                 },
             }

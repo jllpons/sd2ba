@@ -9,7 +9,7 @@ def write_fasta(path, content):
     with open(path, 'w') as handle:
         handle.write(content)
 
-def generate_representation(sequence, fragments, start_pos=0):
+def generate_representation(sequence, fragments, header=None):
     """
     Generates a representation of the sequence with the fragments. Can be either
     a segmented domain or predicted breakpoints. The representation is a string
@@ -22,7 +22,7 @@ def generate_representation(sequence, fragments, start_pos=0):
                           fragment ids and the values are dictionaries with the 
                           keys "start" and "end" that represent the start and 
                           end positions of the fragment.
-        start_pos (int): The start position of the sequence. Default is 0.
+        header (str): The header of the sequence. Default is None.
 
     Returns:
         str: The representation of the sequence with the fragments.
@@ -72,7 +72,7 @@ def generate_representation(sequence, fragments, start_pos=0):
                 segment_positions.append(end-1)
 
     representation = []
-    accumulator = start_pos -1
+    accumulator = -1
     for i in range(len(sequence)):
         accumulator += 1
 
@@ -82,7 +82,15 @@ def generate_representation(sequence, fragments, start_pos=0):
         else:
             representation.append(sequence[i])
 
-    return "".join(representation)
+    if header:
+
+        return (header
+                + "\n"
+                + "".join(representation))
+
+    else:
+
+        return "".join(representation)
 
 
 def generate_text_report(dict_report, pdb_code):
@@ -103,7 +111,7 @@ def generate_text_report(dict_report, pdb_code):
     domains_header = f"\t- Domains ({len(dict_report['domain_data']['domains'])}):\n"
     segments = [f"\t\t- {dict_report['domain_data']['domains'][i]['id']}: amino [{dict_report['domain_data']['domains'][i]['start']}..{dict_report['domain_data']['domains'][i]['end']}]\n" for i in dict_report["domain_data"]["domains"]]
     domains = domains_header + "".join(segments)
-    first_subheader = f"\n1.1. Domain data representation for {pdb_code}\n\n\t"
+    #first_subheader = f"\n1.1. Domain data representation for {pdb_code}\n\n\t"
     first_representation = f"{dict_report['domain_data_representation']}\n"
     second_header = "\n2. GARD results for using the codon aligment of the input proteins\n\n"
     predicted_breakpoints_header = f"\t- Predicted breakpoints ({len(dict_report['gard_results'])}):\n"
@@ -114,25 +122,24 @@ def generate_text_report(dict_report, pdb_code):
     breakpoints_w_trimmed = [f"\t\t- {i}: amino [{dict_report['gard_results_with_aligned_start_pos'][i]['aminoacid_rounded']['start']}..{dict_report['gard_results_with_aligned_start_pos'][i]['aminoacid_rounded']['end']}], nucleotide [{dict_report['gard_results_with_aligned_start_pos'][i]['nucleotide']['start']}..{dict_report['gard_results_with_aligned_start_pos'][i]['nucleotide']['end']}]\n" for i in dict_report["gard_results_with_aligned_start_pos"]]
     predicted_breakpoints_w_trimmed = predicted_breakpoints_header + "".join(breakpoints_w_trimmed)
     third_subheader = "\n2.2 Comparison of the representations of the segmented domain and the predicted breakpoints\n\n"
-    first_representation_fasta = f">{pdb_code} | PDB SEQUENCE | domain representation\n{first_representation}"
     second_representation = (dict_report["start_pos_of_aligned_aa_sequence"] * "A"
                              + f"{dict_report['gard_results_representation'][pdb_code.upper()]}")
-    second_representation_fasta = f">{pdb_code} | UNIPROT_SEQUENCE | GARD results representation\n{second_representation}\n"
+    second_representation_fasta = f">{pdb_code} | UNIPROT SEQUENCE WITH TRIMMED AA | GARD results representation\n{second_representation}\n"
     fourth_subheader = "\n2.3. Representation of the predicted breakpoints for all of the input proteins\n\n"
     representations = [f">{i}\n{dict_report['gard_results_representation'][i]}\n" for i in dict_report["gard_results_representation"]]
 
     return (first_header
             + solved_residues
             + domains
-            + first_subheader
-            + first_representation
+            #+ first_subheader
+            #+ first_representation
             + second_header
             + predicted_breakpoints
             + second_subheader
             + little_explanation
             + predicted_breakpoints_w_trimmed
             + third_subheader
-            + first_representation_fasta
+            + first_representation
             + second_representation_fasta
             + fourth_subheader
             + "".join(representations)
