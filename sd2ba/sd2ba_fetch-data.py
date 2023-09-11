@@ -46,12 +46,18 @@ def main():
             )
 
     # TODO: maybe change
-    parser_required = parser.add_argument_group("required arguments")
+    parser_required = parser.add_argument_group("required arguments (one of both is required)")
     parser_required.add_argument(
             "--uniref",
             metavar="UNIREF",
             type=str,
             help="UniRef cluster ID",
+            )
+    parser_required.add_argument(
+            "--ids",
+            metavar="LIST",
+            type=str,
+            help="File with a list of Uniprot IDs",
             )
 
     parser_output = parser.add_argument_group("output options")
@@ -79,9 +85,9 @@ def main():
 
     args = parser.parse_args()
 
-    if not args.uniref:
+    if not args.uniref and not args.ids:
         parser.print_help()
-        sys.exit("\n** ERROR: --uniref arg is required **\n")
+        sys.exit("\n** ERROR: --uniref or --ID-list arg are required **\n")
 
     output_dir_path = args.output_directory
     if not os.path.exists(output_dir_path):
@@ -102,8 +108,14 @@ def main():
     logging.info("CMD: " + " ".join(sys.argv))
     logging.debug(f"Output directory was created: {output_dir_path}")
 
-    # Accessing UniRef data and obtaining the list of proteins ids
-    uniref_data = get_data_from_uniref(args.uniref)
+    if args.uniref:
+        # Accessing UniRef data and obtaining the list of proteins ids
+        uniref_data = get_data_from_uniref(args.uniref)
+
+    elif args.ids:
+        # Reading the list of proteins ids
+        with open(args.ids, "r") as f:
+            uniref_data = f.read().splitlines()
 
     # Creating a list of Protein objects from the list of proteins ids
     proteins = [Protein(input_id=i) for i in uniref_data]
@@ -144,19 +156,31 @@ def main():
         fasta_nucleotide_sequences.append(p.fasta_header)
         fasta_nucleotide_sequences.append(p.ena_nucleotide_sequence)
 
-    write_fasta(
-            path=f"{output_dir_path}/{args.uniref}_aa_sequences.fasta",
-            content="\n".join(fasta_aa_sequences),
-            )
+    if args.uniref:
+        write_fasta(
+                path=f"{output_dir_path}/{args.uniref}_aa_sequences.fasta",
+                content="\n".join(fasta_aa_sequences),
+                )
+    else:
+        write_fasta(
+                path=f"{output_dir_path}/aa_sequences.fasta",
+                content="\n".join(fasta_aa_sequences),
+                )
     logging.info(f"The AA sequences from {len(proteins)} proteins present "
                  + f"in {args.uniref} were extracted from Uniprot and written to "
                  + f"{output_dir_path}/{args.uniref}_aa_sequences.fasta"
                  )
 
-    write_fasta(
-            path=f"{output_dir_path}/{args.uniref}_nucleotide_sequences.fasta",
-            content="\n".join(fasta_nucleotide_sequences),
-            )
+    if args.uniref:
+        write_fasta(
+                path=f"{output_dir_path}/{args.uniref}_nucleotide_sequences.fasta",
+                content="\n".join(fasta_nucleotide_sequences),
+                )
+    else:
+        write_fasta(
+                path=f"{output_dir_path}/nucleotide_sequences.fasta",
+                content="\n".join(fasta_nucleotide_sequences),
+                )
     logging.info(f"The nucleotide sequences from {len(proteins)} proteins present "
                  + f"in {args.uniref} were extracted from ENA and written to "
                  + f"{output_dir_path}/{args.uniref}_nucleotide_sequences.fasta"
