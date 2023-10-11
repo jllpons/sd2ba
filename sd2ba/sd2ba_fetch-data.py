@@ -3,9 +3,12 @@
 """
 sd2ba_fetch-data.py
 
-This script fetches the AA and nucleotide sequences from the proteins present
-in a UniRef cluster. The input is a UniRef cluster ID and the output is a fasta
-file with the AA sequences and another fasta file with the nucleotide sequences.
+From a list of UniProt IDs, this script fetches the AA (from UniProt) and
+nucleotide (from ENA) sequences and writes them in two fasta files. FASTA
+headers are in the format: >UniprotAccession_ENAAccession.
+
+Accepts input from stdin or from a file with a list of UniProt IDs. Also
+accepts a UniRef cluster ID as input.
 """
 
 import argparse
@@ -34,9 +37,9 @@ __version__ = "0.0.0"
 def main():
 
     description = """
-    From a list of UniProt IDs, this script fetches the AA (from UniProt) and
+    Description: From a list of UniProt IDs, this script fetches the AA (from UniProt) and
     nucleotide (from ENA) sequences and writes them in two fasta files. FASTA
-    headers are in the format: >UniprotAccession_ENAAccession.
+    headers are in the format: >UniprotAccession_ENAAccession.\n\n
 
     Accepts input from stdin or from a file with a list of UniProt IDs. Also
     accepts a UniRef cluster ID as input.
@@ -47,24 +50,21 @@ def main():
             usage="sd2ba_fetch-data.py [options]",
             )
 
-    parser_required = parser.add_argument_group("required arguments (one of both is required)")
-    parser_required.add_argument(
-            "--uniref",
-            metavar="UNIREF",
-            type=str,
-            help="UniRef cluster ID. Mutually exclusive with -f",
-            )
-    parser_required.add_argument(
+    parser.add_argument(
             "-f",
             metavar="<file>",
             type=str,
             help="File with a list of Uniprot IDs separated by newlines. Mutually exclusive with --uniref",
             )
-
-    parser_output = parser.add_argument_group("output options")
-    parser_output.add_argument(
+    parser.add_argument(
+            "--uniref",
+            metavar="<id>",
+            type=str,
+            help="UniRef cluster ID. Mutually exclusive with -f",
+            )
+    parser.add_argument(
             "-o", "--output",
-            metavar="PATH",
+            metavar="<path>",
             type=str,
             default=f"{os.getcwd()}/sd2ba_fetch-data_output",
             help="Output directory [Default: $CWD/sd2ba_fetch-data_output]",
@@ -77,7 +77,7 @@ def main():
             )
     parser.add_argument(
             "-l", "--logging",
-            metavar="LEVEL",
+            metavar="<level>",
             type=str,
             default="INFO",
             choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
