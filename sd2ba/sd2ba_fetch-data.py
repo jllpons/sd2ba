@@ -34,35 +34,36 @@ __version__ = "0.0.0"
 def main():
 
     description = """
-    This script fetches the AA and nucleotide sequences from the proteins
-    present in a UniRef cluster. The input is a UniRef cluster ID and the
-    output is a fasta file with the AA sequences and another fasta file with
-    with as the nucleotide sequences.
+    From a list of UniProt IDs, this script fetches the AA (from UniProt) and
+    nucleotide (from ENA) sequences and writes them in two fasta files. FASTA
+    headers are in the format: >UniprotAccession_ENAAccession.
+
+    Accepts input from stdin or from a file with a list of UniProt IDs. Also
+    accepts a UniRef cluster ID as input.
     """
 
     parser = argparse.ArgumentParser(
             description=description,
-            usage="sd2ba.py [options]",
+            usage="sd2ba_fetch-data.py [options]",
             )
 
-    # TODO: maybe change
     parser_required = parser.add_argument_group("required arguments (one of both is required)")
     parser_required.add_argument(
             "--uniref",
             metavar="UNIREF",
             type=str,
-            help="UniRef cluster ID",
+            help="UniRef cluster ID. Mutually exclusive with -f",
             )
     parser_required.add_argument(
-            "--ids",
-            metavar="LIST",
+            "-f",
+            metavar="<file>",
             type=str,
-            help="File with a list of Uniprot IDs",
+            help="File with a list of Uniprot IDs separated by newlines. Mutually exclusive with --uniref",
             )
 
     parser_output = parser.add_argument_group("output options")
     parser_output.add_argument(
-            "-o", "--output-directory",
+            "-o", "--output",
             metavar="PATH",
             type=str,
             default=f"{os.getcwd()}/sd2ba_fetch-data_output",
@@ -85,9 +86,17 @@ def main():
 
     args = parser.parse_args()
 
-    if not args.uniref and not args.ids:
+    if args.uniref and args.f:
         parser.print_help()
-        sys.exit("\n** ERROR: --uniref or --ID-list arg are required **\n")
+        sys.exit("\n** ERROR: --uniref and -f are mutually exclusive **\n")
+
+    if not args.uniref and not args.f:
+        # If stdin is not connected to a terminal, (i.e. in a pipe) read from it
+        if not sys.stdin.isatty():
+            stdin = sys.stdin.read().splitlines()
+        else:
+            parser.print_help()
+            sys.exit("\n** ERROR: runnig without --uniref or -f requires a stdin input **\n")
 
     output_dir_path = args.output_directory
     if not os.path.exists(output_dir_path):
@@ -110,15 +119,18 @@ def main():
 
     if args.uniref:
         # Accessing UniRef data and obtaining the list of proteins ids
-        uniref_data = get_data_from_uniref(args.uniref)
+        p_list = get_data_from_uniref(args.uniref)
 
     elif args.ids:
         # Reading the list of proteins ids
         with open(args.ids, "r") as f:
-            uniref_data = f.read().splitlines()
+            p_list = f.read().splitlines()
+
+    elif stdin:
+        p_list = stdin
 
     # Creating a list of Protein objects from the list of proteins ids
-    proteins = [Protein(input_id=i) for i in uniref_data]
+    proteins = [Protein(input_id=i) for i in p_list]
 
     for p in proteins:
         uniprot_entry_data = get_uniprot_entry_data(p.input_id)
