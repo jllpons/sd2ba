@@ -136,14 +136,14 @@ def main():
             else:
                 proteins.remove(p)
                 logging.warning(
-                        f"{p.input_id} present in {args.uniref_code} have been removed "
+                        f"{p.input_id} have been removed "
                         + "from the analysis due to problems accesing its ENA entry. "
                         )
 
         else:
             proteins.remove(p)
             logging.warning(
-                    f"{p.input_id} present in {args.uniref_code} have been removed "
+                    f"{p.input_id} have been removed "
                     + "from the analysis due to problems accesing its Uniprot entry. "
                     )
 

@@ -78,6 +78,9 @@ def handle_uniprot_entry_json(response):
     response = json.loads(response)
 
     try:
+
+        if response["entryType"] == "Inactive":
+            return {"successful": False}
         # UniProt accession code.
         uniprot_accession = response["primaryAccession"]
 
