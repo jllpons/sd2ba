@@ -56,11 +56,11 @@ class ReferenceProtein(Protein):
 
 def main():
 
-    description = """sd2ba.py is a tool to identify the breakpoint of a segmented domain in a protein family"""
+    description = """sd2ba: Recombination analysis from proteins containing segmented domains. """
 
     parser = argparse.ArgumentParser(
                         description=description,
-                        usage="sd2ba.py PDB PFAM amino.fasta nucleotide.fasta [options]"
+                        usage="./sd2ba.py PDB PFAM amino.fasta nucleotide.fasta [options]"
                         )
 
     parser.add_argument(
@@ -79,13 +79,13 @@ def main():
             "aa_fasta",
             metavar="amino.fasta",
             type=str,
-            help="Fasta file with the amino acid sequences of the proteins of interest.",
+            help="fasta file with the amino acid sequences of the proteins of interest.",
             )
     parser.add_argument(
             "nt_fasta",
             metavar="nucleotide.fasta",
             type=str,
-            help="Fasta file with the nucleotide sequences of the proteins of interest.",
+            help="fasta file with the nucleotide sequences of the proteins of interest.",
             )
 
     parser_output = parser.add_argument_group("output options")
@@ -94,7 +94,7 @@ def main():
                     metavar="STR",
                     type=str,
                     default="sd2ba_output",
-                    help = "Output directory [Default: $CWD/s2ba_output]"
+                    help = "output directory [Default: $CWD/s2ba_output]"
                     )
 
     parser.add_argument(
@@ -102,7 +102,7 @@ def main():
                     metavar="STR",
                     type=str,
                     default="INFO",
-                    help = "Set the logging level [Default: INFO] [Choices: DEBUG, INFO, WARNING, ERROR, CRITICAL]"
+                    help = "set the logging level [Default: INFO] [Choices: DEBUG, INFO, WARNING, ERROR, CRITICAL]"
                     )
     parser.add_argument(
                     "-V", "--version",
