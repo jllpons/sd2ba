@@ -94,9 +94,12 @@ def main():
         # If stdin is not connected to a terminal, (i.e. in a pipe) read from it
         if not sys.stdin.isatty():
             stdin = sys.stdin.read().splitlines()
+            if len(stdin) == 0:
+                parser.print_help()
+                sys.exit("\n** ERROR: stdin is empty **\n")
         else:
             parser.print_help()
-            sys.exit("\n** ERROR: runnig without --uniref or -f requires a stdin input **\n")
+            sys.exit("\n** ERROR: runnig without --uniref or -f requires stdin **\n")
 
     output_dir_path = args.output_directory
     if not os.path.exists(output_dir_path):
