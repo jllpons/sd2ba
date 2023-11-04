@@ -365,9 +365,8 @@ def main():
     logging.debug(f"Output directory was created: {output_dir_path}")
     logging.info(f"{len(id_list)} IDs were provided")
 
-    # Creating a list of Protein objects from the list of proteins ids
+    # Data fetching
     proteins = [Protein(input_id=i) for i in id_list]
-
     for p in proteins:
         uniprot_entry_data = FetchData().get_uniprot_entry_data(p.input_id)
 
@@ -392,25 +391,28 @@ def main():
                             + "from the analysis due to problems accesing "
                             + "its Uniprot entry. ")
 
-    fasta_aa_sequences = []
-    fasta_nucleotide_sequences = []
-    for p in proteins:
-        fasta_aa_sequences.append(p.fasta_header)
-        fasta_aa_sequences.append(p.uniprot_aa_sequence)
-
-        fasta_nucleotide_sequences.append(p.fasta_header)
-        fasta_nucleotide_sequences.append(p.ena_nucleotide_sequence)
-
     logging.info(f"{len(proteins)} proteins were fetched successfully")
 
-    with open(f"{output_dir_path}/aa_sequences.fasta", "w") as f:
-        f.write("\n".join(fasta_aa_sequences))
+    # Writing fasta files
+    if len(proteins) > 0:
+        fasta_aa_sequences = []
+        fasta_nucleotide_sequences = []
+        for p in proteins:
+            fasta_aa_sequences.append(p.fasta_header)
+            fasta_aa_sequences.append(p.uniprot_aa_sequence)
 
-    with open(f"{output_dir_path}/nucleotide_sequences.fasta", "w") as f:
-        f.write("\n".join(fasta_nucleotide_sequences))
+            fasta_nucleotide_sequences.append(p.fasta_header)
+            fasta_nucleotide_sequences.append(p.ena_nucleotide_sequence)
 
-    logging.info("Script finished successfully")
-    sys.exit(0)
+        with open(f"{output_dir_path}/aa_sequences.fasta", "w") as f:
+            f.write("\n".join(fasta_aa_sequences))
+        with open(f"{output_dir_path}/nucleotide_sequences.fasta", "w") as f:
+            f.write("\n".join(fasta_nucleotide_sequences))
+
+        logging.info("Script finished successfully")
+        sys.exit(0)
+
+    sys.exit("Error: no proteins were fetched successfully")
 
 
 if __name__ == "__main__":
