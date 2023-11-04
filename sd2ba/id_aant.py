@@ -20,7 +20,7 @@ import json
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
-from sd2ba_functions.API_URL import UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL
+from sd2ba.sd2ba_functions.API_URL import UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL
 
 
 __version__ = "0.0.0"
@@ -261,7 +261,7 @@ class FetchData:
                     f"Error in handling UniProt JSON response for {code}. "
                     + "The structure of the JSON response may have changed. "
                     + "Check FetchData.handle_uniprot_entry_json function or "
-                    + "run 'python -m unittest tests.id_aant_tests'."
+                    + "run 'python -m unittest test.test_id_aant'."
                     )
 
                 return FetchDataResult(successful=False, data={})
@@ -271,7 +271,7 @@ class FetchData:
                     f"Error in handling UniProt JSON response for {code}. "
                     + "The structure of the JSON response may have changed. "
                     + "Check FetchData.handle_uniprot_entry_json function or "
-                    + "run 'python -m unittest tests.id_aant_tests'."
+                    + "run 'python -m unittest test.test_id_aant'."
                         )
                 return FetchDataResult(successful=False, data={})
 
