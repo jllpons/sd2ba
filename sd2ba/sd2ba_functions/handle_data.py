@@ -12,44 +12,6 @@ from Bio.PDB import PDBParser
 logger = logging.getLogger(__name__)
 
 
-def handle_uniref_json(response):
-    """
-    Handles the JSON response from UniRef and returns a list of UniRef IDs
-    for the members of the cluster.
-
-    Args:
-        response (str): The JSON response from UniRef.
-
-    Returns:
-        list: A list of Uniprot IDs for the members of the cluster."
-    """
-
-    response = json.loads(response)
-
-    uniref_data = []
-
-    representative = response["representativeMember"]
-    if representative["memberIdType"] == "UniProtKB ID":
-        representative_id = representative["memberId"]
-        uniref_data.append(representative_id)
-
-    members = response["members"]
-    for i in members:
-
-        if i["memberIdType"] == "UniProtKB ID":
-            uniref_data.append(i["accessions"][0])
-
-        # TODO: if uniref it's the final option. Handle uniparc accessions.
-        # elif i[] == Uniparc...
-
-    logging.info(
-            f"Number of members found in the UniRef cluster was {len(members)}. "
-            + f"Number of proteins IDs present in the UniprotKB was {len(uniref_data)}. "
-            + f"Only UniProtKB IDs have been considered."
-                  )
-
-    return uniref_data
-
 def handle_uniprot_entry_json(response):
     """
     Handles the JSON response from UniProt for an entry.

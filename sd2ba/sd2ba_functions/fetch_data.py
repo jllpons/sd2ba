@@ -9,12 +9,12 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from sd2ba_functions.API_URL import (
-        UNIPROT_UNIREF_JSON_API_URL, RSCB_PDB_API_URL,
+        RSCB_PDB_API_URL,
         UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL,
         PFAM_HMM_API_URL, RSCB_PDB_FASTA_API_URL, PDB_TO_UNIPROT_JSON_API_URL,
         EBI_MAPPING_PDBE_API_URL,
         )
-from sd2ba_functions.handle_data import handle_uniref_json, handle_uniprot_entry_json, read_single_fasta
+from sd2ba_functions.handle_data import handle_uniprot_entry_json, read_single_fasta
 
 
 logger = logging.getLogger(__name__)
@@ -46,48 +46,6 @@ def make_request_with_retries(url, retries=3, delay=1):
 
     response = http.get(url)
     return response
-
-
-def get_data_from_uniref(code):
-    """
-    Fetches UniRef data in JSON format for a given UniRef code.
-
-    Parameters:
-        code (str): The UniRef code for the desired UniRef cluster.
-
-    Returns:
-        requests.Response.text: The JSON response text.
-
-    Raises:
-        SystemExit: If the request to UniProt for UniRef data fails or if there is an error
-                    in handling the UniRef JSON response.
-
-    """
-
-    url = UNIPROT_UNIREF_JSON_API_URL.format(code=code)
-
-    response = make_request_with_retries(url)
-
-    if response.status_code == 200:
-        logging.debug(
-                f"UniProt-UniRef request for {code} was successful. "
-                + f"Url used was {url}."
-                )
-        try:
-            return handle_uniref_json(response.text)
-        except:
-            logging.critical(
-                    f"Error in handling UniProt-UniRef JSON response for {code}. "
-                    + "The structure of the JSON response could have changed. "
-                    + "Check handle_uniref_json() in sd2ba_functions.handle_data"
-                    )
-            sys.exit("\n** CRITICAL: Error in handling UniProt-UniRef response. Check log file for detailed info. **")
-
-    logging.critical(
-            f"UniProt request for {code} was unsuccessful. "
-            + f"Url used was {url}. The script has stopped."
-            )
-    sys.exit("\n** CRITICAL: Request for UniRef data to UniProt failed. Check log file for detailed info. **")
 
 
 def get_uniprot_entry_data(code):
