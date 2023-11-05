@@ -15,6 +15,18 @@ sd2ba.py takes:
 
 Given this input, sd2ba.py generates a report where the positions of the segmented domains are compared to the positions of  the predicted recombination breakpoints by [GARD](<https://doi.org/10.1093/bioinformatics/btl474>) using a codon aligment from the two fasta files.
 
+A small scirpt, id_aant.py, is also provided: 
+Given a list of UniProt protein IDs, generates **two fasta files**: one containing the nucleotide and the other containing the amino acid sequences.
+Fasta headers in those two files will have the same structure: `>{UniProtAccession}_{ENAAccession}`
+
+## Sections:
+
+- [Dependencies](#dependencies)
+- [Usage](#usage)
+- [Usage Example](#example)
+- [id_aant usage example](#idaant-usage-example)
+- [Documentation](#documentation)
+
 ## Dependencies
 
 Python (>= 3.9)
@@ -77,6 +89,12 @@ output options:
 
 ```shell
 ./sd2ba/sd2ba.py 2QGUA PF05494 test/data/3_aa_sequences.fasta test/data/3_nucleotide_sequences.fasta -o 3_protein_test
+```
+
+### id_aant usage example:
+
+```shell
+cat uniprot_id_list.txt | python sd2ba/id_aant.py
 ```
 
 ## Documentation
