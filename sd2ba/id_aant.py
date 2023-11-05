@@ -20,7 +20,7 @@ import json
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
-from sd2ba.sd2ba_functions.API_URL import UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL
+from sd2ba_functions.API_URL import UNIPROT_ENTRY_JSON_API_URL, ENA_NUCLEOTIDE_SEQUENCE_API_URL
 
 
 __version__ = "0.0.0"
@@ -28,35 +28,39 @@ __version__ = "0.0.0"
 
 class Arguments:
 
-    usage = "Usage: python3 id_aant.py [options]"
+        def __init__(self):
+            self.id_file = None
+            self.output_directory = f"{os.getcwd()}/id_aant_output"
+            self.log_level = "INFO"
 
-    description = """
-    Description: From a list of UniProt IDs, this script fetches the
-    amino acid (from UniProt) and nucleotide (from ENA) sequence and writes
-    them in two fasta files.
-    FASTA headers will appear as: >UniprotAccession_ENAAccession.
-    Accepts IDs list from sdin or from file if -f is used.
-    """
 
-    help_msg = """
-    -f    <file>    File with a list of UniProt IDs separated by newlines.
-    -o    <path>    Output directory [Default: $CWD/id_aant_output]
-    -l    <level>   Set the logging level [Default: INFO] [Choices: DEBUG, INFO, WARNING, ERROR, CRITICAL]
-    -V              Show version and exit
-    -h, --help      Show this help message and exit
-    """
+class Cli:
 
     def __init__(self):
-        self.id_file = None
-        self.output_directory = f"{os.getcwd()}/id_aant_output"
-        self.log_level = "INFO"
 
+        self.usage = "Usage: python3 id_aant.py [options]"
+
+        self.description = """
+        Description: From a list of UniProt IDs, this script fetches the
+        amino acid (from UniProt) and nucleotide (from ENA) sequence and writes
+        them in two fasta files.
+        FASTA headers will appear as: >UniprotAccession_ENAAccession.
+        Accepts IDs list from sdin or from file if -f is used.
+        """
+
+        self.help_msg = """
+        -f    <file>    File with a list of UniProt IDs separated by newlines.
+        -o    <path>    Output directory [Default: $CWD/id_aant_output]
+        -l    <level>   Set the logging level [Default: INFO] [Choices: DEBUG, INFO, WARNING, ERROR, CRITICAL]
+        -V              Show version and exit
+        -h, --help      Show this help message and exit
+        """
 
     def print_help_and_exit(self) -> None:
         """Prints the help message and exits"""
-        print(Arguments.usage)
-        print(Arguments.description)
-        print(Arguments.help_msg)
+        print(self.usage)
+        print(self.description)
+        print(self.help_msg)
         sys.exit(1)
 
 
@@ -90,6 +94,7 @@ class Arguments:
         if "-h" in arguments or "--help" in arguments:
             self.print_help_and_exit()
 
+        parsed_args = Arguments()
         for indx, arg in enumerate(arguments):
             if arg == "-f":
                 try:
@@ -97,14 +102,14 @@ class Arguments:
                 except IndexError:
                     sys.exit("\nError: -f requires a file path\n")
                 if self.chek_filepath(file_path):
-                    self.id_file = file_path
+                   parsed_args .id_file = file_path
 
             elif arg == "-o":
                 try:
                     output_directory = arguments[indx + 1]
                 except IndexError:
                     sys.exit("\nError: -o requires a path\n")
-                self.output_directory = output_directory
+                parsed_args.output_directory = output_directory
 
             elif arg == "-l":
                 try:
@@ -113,13 +118,13 @@ class Arguments:
                     sys.exit("\nError: -l requires a log level\n")
                 if log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
                     sys.exit("\nError: log level must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL\n")
-                self.log_level = log_level
+                parsed_args.log_level = log_level
 
             elif arg == "-V":
                 print(f"{__file__} {__version__}")
                 sys.exit(0)
 
-        return self
+        return parsed_args
 
 
 class Protein:
@@ -330,7 +335,7 @@ class FetchData:
 
 def main():
 
-    args = Arguments().parse_arguments(sys.argv[1:])
+    args = Cli().parse_arguments(sys.argv[1:])
 
     # IDs
     if args.id_file:
