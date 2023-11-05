@@ -135,7 +135,15 @@ class Protein:
         self.ena_accession = ""
         self.uniprot_aa_sequence = ""
         self.ena_nucleotide_sequence = ""
-        self.fasta_header = f">{self.uniprot_accession}_{self.ena_accession}"
+
+    def generate_fasta_header(self) -> str:
+        """
+        Generates the fasta header for the protein.
+
+        Returns:
+            str: The fasta header.
+        """
+        return f">{self.uniprot_accession}_{self.ena_accession}"
 
 
 class FetchDataResult:
@@ -403,10 +411,10 @@ def main():
         fasta_aa_sequences = []
         fasta_nucleotide_sequences = []
         for p in proteins:
-            fasta_aa_sequences.append(p.fasta_header)
+            fasta_aa_sequences.append(p.generate_fasta_header())
             fasta_aa_sequences.append(p.uniprot_aa_sequence)
 
-            fasta_nucleotide_sequences.append(p.fasta_header)
+            fasta_nucleotide_sequences.append(p.generate_fasta_header())
             fasta_nucleotide_sequences.append(p.ena_nucleotide_sequence)
 
         with open(f"{output_dir_path}/aa_sequences.fasta", "w") as f:
