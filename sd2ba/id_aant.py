@@ -319,7 +319,7 @@ class FetchData:
                         )
                 return FetchDataResult(successful=False, data={})
 
-            return FetchDataResult(successful=True, data={"fasta": ena_fasta})
+            return FetchDataResult(successful=True, data=ena_fasta)
 
         logging.info(
                 f"ENA request for {code} nucleotide sequence was unsuccessful. "
@@ -412,7 +412,7 @@ def main():
         logging.info("Script finished successfully")
         sys.exit(0)
 
-    sys.exit("Error: no proteins were fetched successfully")
+    sys.exit("\nError: no proteins were fetched successfully\n")
 
 
 if __name__ == "__main__":
