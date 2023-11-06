@@ -12,11 +12,11 @@ Description:    From a list of UniProt IDs, this script fetches the amino acid
                 Accepts IDs list from sdin or from file if -f is used.
 """
 
+import json
 import logging
 import os
 import sys
 
-import json
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
@@ -27,14 +27,22 @@ __version__ = "0.0.0"
 
 
 class Arguments:
+    """
+    Arguments object with the parsed arguments. Default values are set in the
+    __init__ method.
+    """
 
-        def __init__(self):
-            self.id_file = None
-            self.output_directory = f"{os.getcwd()}/id_aant_output"
-            self.log_level = "INFO"
+    def __init__(self):
+        self.id_file = None
+        self.output_directory = f"{os.getcwd()}/id_aant_output"
+        self.log_level = "INFO"
 
 
 class Cli:
+    """
+    Command line interface object. It parses the arguments provided by the user
+    and prints the usage, description and help messages if needed.
+    """
 
     def __init__(self):
 
@@ -57,7 +65,9 @@ class Cli:
         """
 
     def print_help_and_exit(self) -> None:
-        """Prints the help message and exits"""
+        """
+        Prints the help message and exits
+        """
         print(self.usage)
         print(self.description)
         print(self.help_msg)
@@ -128,6 +138,9 @@ class Cli:
 
 
 class Protein:
+    """
+    Protein object with the data fetched from UniProt and ENA.
+    """
 
     def __init__(self, input_id: str):
         self.input_id = input_id
@@ -147,6 +160,10 @@ class Protein:
 
 
 class FetchDataResult:
+    """
+    FetchDataResult object with the result of the request.
+    Can be successful or unsuccessful.
+    """
 
     def __init__(self, successful: bool, data: dict):
         self.successful = successful
@@ -154,6 +171,9 @@ class FetchDataResult:
 
 
 class FetchData:
+    """
+    FetchData object with the methods to fetch data from UniProt and ENA.
+    """
 
     def __init__(self):
         pass
